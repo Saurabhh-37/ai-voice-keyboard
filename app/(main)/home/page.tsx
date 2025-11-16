@@ -5,28 +5,34 @@ import { RecordButton } from "@/components/dictation/RecordButton";
 import { Waveform } from "@/components/dictation/Waveform";
 import { LiveTranscript } from "@/components/dictation/LiveTranscript";
 import { RecentTranscripts } from "@/components/transcripts/RecentTranscripts";
+import { api } from "@/lib/api-client";
 
 export default function HomePage() {
   // State management
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [liveText, setLiveText] = useState("");
+  const [recentTranscripts, setRecentTranscripts] = useState<Array<{ id: string; text: string }>>([]);
 
-  // Placeholder transcripts data
-  const placeholderTranscripts = [
-    {
-      id: "1",
-      text: "This is a sample transcription. It demonstrates how the text will appear in the recent transcripts section. The card should be clickable and show a copy button on hover.",
-    },
-    {
-      id: "2",
-      text: "Another example transcription with slightly different content to show variety in the list.",
-    },
-    {
-      id: "3",
-      text: "A third transcription example to demonstrate the grid layout and spacing.",
-    },
-  ];
+  // Fetch recent transcripts on mount
+  useEffect(() => {
+    async function fetchRecentTranscripts() {
+      try {
+        const transcripts = await api.transcripts.getAll();
+        // Get the 3 most recent
+        const recent = transcripts.slice(0, 3).map((t) => ({
+          id: t.id,
+          text: t.text,
+        }));
+        setRecentTranscripts(recent);
+      } catch (err) {
+        console.error("Error fetching recent transcripts:", err);
+        // Silently fail - don't show error on home page
+      }
+    }
+
+    fetchRecentTranscripts();
+  }, []);
 
   // Simulate live transcription updates when recording
   useEffect(() => {
@@ -78,7 +84,7 @@ export default function HomePage() {
         <LiveTranscript text={liveText} isRecording={isRecording} />
 
         {/* Recent Transcripts */}
-        <RecentTranscripts transcripts={placeholderTranscripts} />
+        <RecentTranscripts transcripts={recentTranscripts} />
       </div>
     </div>
   );

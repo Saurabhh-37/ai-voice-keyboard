@@ -1,52 +1,81 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { TranscriptList } from "@/components/transcripts/TranscriptList";
+import { api } from "@/lib/api-client";
+import { format } from "date-fns";
 
-// Placeholder transcript data
-const placeholderTranscripts = [
-  {
-    id: "1",
-    text: "This is a sample transcription that demonstrates how the library page will display user recordings. The text should be truncated to show a preview, and users can click to view the full transcript.",
-    createdAt: "Today • 3:21 PM",
-  },
-  {
-    id: "2",
-    text: "Another example transcription with different content. This shows how multiple transcripts will appear in the list, sorted by creation date with the most recent at the top.",
-    createdAt: "Today • 2:15 PM",
-  },
-  {
-    id: "3",
-    text: "A third transcription example to demonstrate the grid layout and spacing. Each card should have a clean design with proper hover effects and copy functionality.",
-    createdAt: "Nov 3 • 10:14 AM",
-  },
-  {
-    id: "4",
-    text: "This is a longer transcription example that will test the line-clamp functionality. The text should be properly truncated to show only the first one or two lines, with an ellipsis indicating there's more content. Users can click the card to view the full transcript in detail.",
-    createdAt: "Nov 2 • 4:30 PM",
-  },
-  {
-    id: "5",
-    text: "Final example transcription to show how the list handles multiple items. The design should remain clean and organized even with many transcripts.",
-    createdAt: "Nov 1 • 9:00 AM",
-  },
-];
+interface Transcript {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchTranscripts() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await api.transcripts.getAll();
+        setTranscripts(data);
+      } catch (err: any) {
+        console.error("Error fetching transcripts:", err);
+        setError(err.message || "Failed to load transcripts");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTranscripts();
+  }, []);
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+      if (diffInHours < 24) {
+        return `Today • ${format(date, "h:mm a")}`;
+      } else if (diffInHours < 48) {
+        return `Yesterday • ${format(date, "h:mm a")}`;
+      } else {
+        return format(date, "MMM d • h:mm a");
+      }
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Transform transcripts for display
+  const displayTranscripts = useMemo(() => {
+    return transcripts.map((t) => ({
+      id: t.id,
+      text: t.text,
+      createdAt: formatDate(t.createdAt),
+    }));
+  }, [transcripts]);
 
   // Filter transcripts based on search query
   const filteredTranscripts = useMemo(() => {
     if (!searchQuery.trim()) {
-      return placeholderTranscripts;
+      return displayTranscripts;
     }
 
     const query = searchQuery.toLowerCase();
-    return placeholderTranscripts.filter((transcript) =>
+    return displayTranscripts.filter((transcript) =>
       transcript.text.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [displayTranscripts, searchQuery]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,8 +96,22 @@ export default function LibraryPage() {
           />
         </div>
 
+        {/* Error State */}
+        {error && (
+          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12 text-muted-foreground">
+            Loading transcripts...
+          </div>
+        )}
+
         {/* Transcript List */}
-        <TranscriptList transcripts={filteredTranscripts} />
+        {!loading && !error && <TranscriptList transcripts={filteredTranscripts} />}
       </div>
     </div>
   );
