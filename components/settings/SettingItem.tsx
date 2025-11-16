@@ -10,7 +10,7 @@ interface SettingItemProps {
   label: string;
   description?: string;
   type: "text" | "toggle";
-  defaultValue?: string;
+  defaultValue?: string | boolean;
   disabled?: boolean;
   value?: string | boolean;
   onChange?: (value: string | boolean) => void;
@@ -25,9 +25,15 @@ export function SettingItem({
   value,
   onChange,
 }: SettingItemProps) {
-  const [textValue, setTextValue] = useState(defaultValue || "");
+  const [textValue, setTextValue] = useState(
+    typeof defaultValue === "string" ? defaultValue : ""
+  );
   const [toggleValue, setToggleValue] = useState(
-    type === "toggle" ? (defaultValue === "true" || defaultValue === true) : false
+    type === "toggle" 
+      ? (typeof defaultValue === "boolean" 
+          ? defaultValue 
+          : defaultValue === "true")
+      : false
   );
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
