@@ -20,7 +20,7 @@ export default function SettingsPage() {
         const settings = await api.getSettings();
         setAutoPunctuation(settings.autoPunctuation);
       } catch (err) {
-        console.error("Error fetching settings:", err);
+        // Silently fail - settings will use defaults
       } finally {
         setLoading(false);
       }
@@ -39,7 +39,6 @@ export default function SettingsPage() {
       await api.updateSettings(value);
       setAutoPunctuation(value);
     } catch (err) {
-      console.error("Error updating settings:", err);
       alert(err instanceof Error ? err.message : "Failed to update settings");
     }
   };

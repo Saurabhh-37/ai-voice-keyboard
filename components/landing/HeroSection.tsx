@@ -28,7 +28,7 @@ export function HeroSection() {
 
             {/* Subheadline */}
             <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-light max-w-2xl mx-auto">
-              A calm, modern tool that turns your voice into clean, structured text — instantly.
+              A calm, modern tool that turns your voice into clean, structured text - instantly.
             </p>
           </div>
 

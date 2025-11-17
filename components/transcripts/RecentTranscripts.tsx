@@ -27,8 +27,8 @@ export function RecentTranscripts({ transcripts }: RecentTranscriptsProps) {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    } catch {
+      // Silently fail - clipboard API may not be available
     }
   };
 

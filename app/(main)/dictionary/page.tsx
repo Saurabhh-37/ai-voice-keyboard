@@ -32,7 +32,6 @@ export default function DictionaryPage() {
         })));
         setError(null);
       } catch (err) {
-        console.error("Error fetching dictionary words:", err);
         setError(err instanceof Error ? err.message : "Failed to load dictionary");
       } finally {
         setLoading(false);
@@ -47,7 +46,6 @@ export default function DictionaryPage() {
       const newEntry = await api.createDictionaryWord(phrase, correction);
       setEntries([newEntry, ...entries]);
     } catch (err) {
-      console.error("Error adding dictionary word:", err);
       alert(err instanceof Error ? err.message : "Failed to add word");
     }
   };
@@ -70,7 +68,6 @@ export default function DictionaryPage() {
       setEditingEntry(null);
       setIsEditDialogOpen(false);
     } catch (err) {
-      console.error("Error updating dictionary word:", err);
       alert(err instanceof Error ? err.message : "Failed to update word");
     }
   };
@@ -84,7 +81,6 @@ export default function DictionaryPage() {
       await api.deleteDictionaryWord(id);
       setEntries(entries.filter((e) => e.id !== id));
     } catch (err) {
-      console.error("Error deleting dictionary word:", err);
       alert(err instanceof Error ? err.message : "Failed to delete word");
     }
   };

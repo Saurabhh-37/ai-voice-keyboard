@@ -48,7 +48,6 @@ export default function TranscriptPage({
         setTranscript(data);
         setError(null);
       } catch (err) {
-        console.error("Error fetching transcript:", err);
         setError(err instanceof Error ? err.message : "Failed to load transcript");
       } finally {
         setLoading(false);
@@ -64,8 +63,8 @@ export default function TranscriptPage({
       await navigator.clipboard.writeText(transcript.text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    } catch {
+      // Silently fail - clipboard API may not be available
     }
   };
 

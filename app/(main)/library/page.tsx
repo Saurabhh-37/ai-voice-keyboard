@@ -28,7 +28,6 @@ export default function LibraryPage() {
         setTranscripts(data);
         setError(null);
       } catch (err) {
-        console.error("Error fetching transcripts:", err);
         setError(err instanceof Error ? err.message : "Failed to load transcripts");
       } finally {
         setLoading(false);

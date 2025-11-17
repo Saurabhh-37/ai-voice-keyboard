@@ -1,4 +1,4 @@
-# Database Connection Verification
+# Database Connection Status
 
 ## ✅ All Pages and Components Connected to PostgreSQL
 
@@ -85,13 +85,26 @@
 ---
 
 ### 6. Profile Page (`/profile`)
-**Status**: ✅ **Uses Firebase Only** (No database needed)
+**Status**: ⚠️ **Uses Firebase Only** (No direct database calls)
 
 **Data Source**:
 - Firebase Authentication (user metadata)
 - No database calls needed (read-only profile info)
 
 **Note**: User data is synced to database via `syncUserToDatabase()` when they access other pages, but profile page itself doesn't need database.
+
+---
+
+## Pages That Don't Need Database
+
+### Landing Page (`/`)
+- **Status**: ❌ **No Database Needed**
+- **Reason**: Static marketing/landing page
+
+### Login/Signup Pages (`/login`, `/signup`)
+- **Status**: ❌ **No Database Needed**
+- **Reason**: Only handles Firebase authentication
+- **Note**: User gets synced to database on first API call after login
 
 ---
 
@@ -141,6 +154,18 @@ All tables are properly connected:
 
 ---
 
+## User Data Sync Flow
+
+When a user signs up or logs in:
+1. Account created in Firebase Authentication
+2. User redirected to `/home` (or other protected page)
+3. On first API call, `syncUserToDatabase()` automatically:
+   - Creates user record in PostgreSQL `users` table
+   - Links Firebase UID to database user ID
+4. All subsequent API calls use the synced user data
+
+---
+
 ## Verification Checklist
 
 - [x] Home page fetches and saves transcripts
@@ -157,8 +182,11 @@ All tables are properly connected:
 
 ## Conclusion
 
-**✅ All pages and components are properly connected to PostgreSQL on Railway.**
+**✅ All pages that need PostgreSQL are properly connected.**
 
-Every page that needs database access is using the API client, which connects to the API routes, which use Prisma to interact with PostgreSQL. All data operations are authenticated, user-scoped, and secure.
+- **5 pages** directly use the database via API calls
+- **1 page** (profile) uses Firebase but data syncs automatically
+- **3 pages** (landing, login, signup) don't need database access
 
+The architecture is correct: public/auth pages don't need database, and all authenticated data pages are fully connected to PostgreSQL.
 

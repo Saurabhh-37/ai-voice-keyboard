@@ -36,7 +36,9 @@ export async function GET(
 
     return NextResponse.json(transcript);
   } catch (error) {
-    console.error("Error fetching transcript:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error fetching transcript:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to fetch transcript" },
       { status: 500 }
@@ -75,7 +77,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting transcript:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error deleting transcript:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to delete transcript" },
       { status: 500 }

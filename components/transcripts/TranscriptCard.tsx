@@ -23,8 +23,8 @@ export function TranscriptCard({ id, text, createdAt }: TranscriptCardProps) {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+    } catch {
+      // Silently fail - clipboard API may not be available
     }
   };
 

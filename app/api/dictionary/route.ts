@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(words);
   } catch (error) {
-    console.error("Error fetching dictionary words:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error fetching dictionary words:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to fetch dictionary words" },
       { status: 500 }
@@ -102,7 +104,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(word, { status: 201 });
   } catch (error) {
-    console.error("Error creating dictionary word:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error creating dictionary word:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to create dictionary word" },
       { status: 500 }

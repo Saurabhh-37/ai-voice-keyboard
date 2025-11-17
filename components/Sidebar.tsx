@@ -33,8 +33,8 @@ export default function Sidebar() {
     try {
       await signOutUser();
       router.push("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
+      // Silently fail - user will stay on current page
       setLoggingOut(false);
     }
   };

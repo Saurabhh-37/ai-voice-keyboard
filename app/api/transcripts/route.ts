@@ -6,18 +6,13 @@ import { syncUserToDatabase } from "@/lib/user-sync";
 // GET /api/transcripts - Get all transcripts for the authenticated user
 export async function GET(request: NextRequest) {
   try {
-    console.log("📥 GET /api/transcripts - Request received");
     const userInfo = await getUserInfoFromRequest(request);
     
     if (!userInfo) {
-      console.error("❌ GET /api/transcripts - Unauthorized: userInfo is null");
       return NextResponse.json({ 
-        error: "Unauthorized",
-        details: "Failed to verify authentication token. Check server logs for details."
+        error: "Unauthorized"
       }, { status: 401 });
     }
-    
-    console.log("✅ GET /api/transcripts - User authenticated:", userInfo.userId);
 
     // Sync user to database
     await syncUserToDatabase(userInfo.userId, userInfo.email, userInfo.name);
@@ -35,7 +30,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(transcripts);
   } catch (error) {
-    console.error("Error fetching transcripts:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error fetching transcripts:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to fetch transcripts" },
       { status: 500 }
@@ -80,7 +77,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transcript, { status: 201 });
   } catch (error) {
-    console.error("Error creating transcript:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error creating transcript:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to create transcript" },
       { status: 500 }

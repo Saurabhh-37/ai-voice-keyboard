@@ -7,20 +7,14 @@ import { auth } from "@/lib/firebase";
  */
 async function getAuthToken(): Promise<string | null> {
   if (!auth?.currentUser) {
-    console.warn("⚠️ No current user found. User must be logged in.");
     return null;
   }
   
   try {
     const token = await auth.currentUser.getIdToken();
-    if (!token) {
-      console.warn("⚠️ Failed to get ID token from Firebase");
-      return null;
-    }
-    console.log("✅ Got auth token, length:", token.length);
-    return token;
+    return token || null;
   } catch (error) {
-    console.error("❌ Error getting auth token:", error);
+    // Silently fail - error will be handled by calling code
     return null;
   }
 }
@@ -112,8 +106,15 @@ export const api = {
       throw new Error("Not authenticated");
     }
 
+    // Create a File object with proper extension for OpenAI API
+    // OpenAI requires the file to have a .webm extension
+    const audioFile = new File([audioBlob], "audio.webm", {
+      type: "audio/webm", // Clean MIME type without codec info
+      lastModified: Date.now(),
+    });
+
     const formData = new FormData();
-    formData.append("audio", audioBlob, "audio.webm");
+    formData.append("audio", audioFile, "audio.webm"); // Use File object with explicit filename
     formData.append("final", isFinal ? "true" : "false");
 
     const response = await fetch("/api/transcribe", {

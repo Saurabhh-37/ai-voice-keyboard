@@ -46,7 +46,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(settings);
   } catch (error) {
-    console.error("Error fetching settings:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error fetching settings:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to fetch settings" },
       { status: 500 }
@@ -97,7 +99,9 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(settings);
   } catch (error) {
-    console.error("Error updating settings:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error updating settings:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to update settings" },
       { status: 500 }

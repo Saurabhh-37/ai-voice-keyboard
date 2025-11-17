@@ -37,29 +37,18 @@ export default function HomePage() {
     }
 
     async function fetchRecentTranscripts() {
-      if (!user) return; // Guard clause for TypeScript
+      if (!user) return;
       
       try {
-        console.log("🔄 Fetching recent transcripts for user:", user.uid);
         const transcripts = await api.getTranscripts();
-        // Get the 3 most recent
         const recent = transcripts.slice(0, 3).map((t) => ({
           id: t.id,
           text: t.text,
         }));
         setRecentTranscripts(recent);
-        console.log("✅ Fetched", recent.length, "recent transcripts");
       } catch (err) {
-        console.error("❌ Error fetching recent transcripts:", err);
-        // Check if it's an auth error
-        if (err instanceof Error && err.message.includes("Unauthorized")) {
-          console.warn("⚠️ Authentication failed. Make sure:");
-          console.warn("1. You are logged in (current user:", user?.uid || "none", ")");
-          console.warn("2. FIREBASE_ADMIN_SDK is set in .env.local");
-          console.warn("3. Dev server was restarted after adding FIREBASE_ADMIN_SDK");
-          console.warn("4. Check server logs for Firebase Admin initialization");
-        }
         // Silently fail - don't show error on home page
+        // Recent transcripts are optional
       }
     }
 
@@ -67,6 +56,8 @@ export default function HomePage() {
   }, [user, authLoading]);
 
   // Process audio chunks as they arrive (every 5 seconds during recording)
+  // IMPORTANT: MediaRecorder timeslice chunks are NOT standalone valid WebM files
+  // We need to accumulate all chunks and send the merged audio for each transcription
   useEffect(() => {
     if (!isRecording || audioChunks.length === 0) {
       return;
@@ -78,18 +69,19 @@ export default function HomePage() {
       return; // Already processed this chunk
     }
 
-    const latestChunk = audioChunks[latestChunkIndex];
     processedChunksRef.current.add(latestChunkIndex);
 
-    // Send chunk to transcription API (partial, not final)
+    // Accumulate all chunks up to this point to create a valid WebM file
+    // MediaRecorder chunks after the first are continuation chunks without headers
+    // We need to merge all chunks to create a valid standalone WebM file
+    const accumulatedChunks = audioChunks.slice(0, latestChunkIndex + 1);
+    const mergedBlob = new Blob(accumulatedChunks, { type: "audio/webm" });
+
+    // Send accumulated audio to transcription API (partial, not final)
     async function transcribeChunk() {
       try {
         setTranscriptionError(null);
-        console.log(`🎙️ Sending chunk ${latestChunkIndex + 1} to transcription API...`);
-        
-        const result = await api.transcribeAudio(latestChunk, false);
-        
-        console.log(`✅ Chunk ${latestChunkIndex + 1} transcribed: "${result.text}"`);
+        const result = await api.transcribeAudio(mergedBlob, false);
         
         // Append the new text to live transcript
         setLiveText((prev) => {
@@ -97,7 +89,6 @@ export default function HomePage() {
           return newText.trim();
         });
       } catch (err) {
-        console.error(`❌ Error transcribing chunk ${latestChunkIndex + 1}:`, err);
         setTranscriptionError(
           err instanceof Error ? err.message : "Failed to transcribe audio"
         );
@@ -123,40 +114,40 @@ export default function HomePage() {
           setTranscriptionError(null);
           setIsTranscribing(true);
           
-          // Wait a bit for MediaRecorder to fire final ondataavailable event
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Wait for MediaRecorder to fire final ondataavailable event
+          await new Promise(resolve => setTimeout(resolve, 300));
           
-          // Get the latest chunks (may have updated during the wait)
-          const currentChunks = audioChunks;
-          if (currentChunks.length === 0) {
-            console.warn("⚠️ No audio chunks available for final transcription");
+          // Get all accumulated chunks and merge them into a valid WebM file
+          // MediaRecorder chunks after the first are continuation chunks without headers
+          // We need to merge all chunks to create a complete, valid WebM file
+          if (audioChunks.length === 0) {
             return;
           }
           
-          // Get the last chunk (should be the final one)
-          const finalChunk = currentChunks[currentChunks.length - 1];
-          
-          console.log("🎙️ Sending final chunk to transcription API...");
-          const result = await api.transcribeAudio(finalChunk, true);
-          
-          console.log("✅ Final transcription complete:", result.text);
+          // Merge all chunks into a single blob for final transcription
+          // This creates a complete, valid WebM file with all headers
+          const finalBlob = new Blob(audioChunks, { type: "audio/webm" });
+          const result = await api.transcribeAudio(finalBlob, true);
           
           // Update live text with final result
           if (result.isFinal && result.text) {
             setLiveText((prev) => {
-              // Merge with existing text, removing duplicates
               const merged = prev ? `${prev} ${result.text}` : result.text;
               return merged.trim();
             });
           }
           
           // Refresh recent transcripts to show the new one
-          const transcripts = await api.getTranscripts();
-          const recent = transcripts.slice(0, 3).map((t) => ({
-            id: t.id,
-            text: t.text,
-          }));
-          setRecentTranscripts(recent);
+          try {
+            const transcripts = await api.getTranscripts();
+            const recent = transcripts.slice(0, 3).map((t) => ({
+              id: t.id,
+              text: t.text,
+            }));
+            setRecentTranscripts(recent);
+          } catch {
+            // Silently fail - transcripts will refresh on next page load
+          }
           
           // Clear live text after a short delay to show it was saved
           setTimeout(() => {
@@ -164,7 +155,6 @@ export default function HomePage() {
           }, 2000);
           
         } catch (err) {
-          console.error("❌ Error transcribing final chunk:", err);
           setTranscriptionError(
             err instanceof Error ? err.message : "Failed to transcribe final audio"
           );

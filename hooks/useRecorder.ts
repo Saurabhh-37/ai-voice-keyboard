@@ -73,22 +73,19 @@ export function useRecorder(): UseRecorderReturn {
       // Handle dataavailable event (fires every 5 seconds)
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
-          console.log(`📦 Audio slice received: ${event.data.size} bytes`);
           audioChunksRef.current.push(event.data);
           setAudioChunks([...audioChunksRef.current]);
         }
       };
 
       // Handle recording errors
-      mediaRecorder.onerror = (event) => {
-        console.error("❌ MediaRecorder error:", event);
+      mediaRecorder.onerror = () => {
         setError("Recording error occurred");
         stopRecording();
       };
 
       // Handle recording stop
       mediaRecorder.onstop = () => {
-        console.log("🛑 Recording stopped. Total chunks:", audioChunksRef.current.length);
         // Stop all tracks to release microphone
         if (mediaStreamRef.current) {
           mediaStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -97,14 +94,11 @@ export function useRecorder(): UseRecorderReturn {
       };
 
       // Start recording with 5000ms timeslice (5 seconds)
-      // This means ondataavailable will fire every 5 seconds
       mediaRecorder.start(5000);
       
       setIsRecording(true);
       setIsProcessing(false);
-      console.log("🎙️ Recording started with 5s slicing");
     } catch (err) {
-      console.error("❌ Error starting recording:", err);
       setError(
         err instanceof Error 
           ? err.message 
@@ -150,9 +144,7 @@ export function useRecorder(): UseRecorderReturn {
 
       setIsRecording(false);
       setIsProcessing(false);
-      console.log("✅ Recording stopped successfully");
     } catch (err) {
-      console.error("❌ Error stopping recording:", err);
       setError(
         err instanceof Error 
           ? err.message 

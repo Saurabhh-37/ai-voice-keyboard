@@ -31,11 +31,7 @@ let auth: Auth | undefined;
 
 if (typeof window !== "undefined") {
   // Only initialize on client side
-  if (!isConfigValid()) {
-    console.warn(
-      "Firebase configuration is missing. Please set up your .env.local file with Firebase credentials."
-    );
-  } else {
+  if (isConfigValid()) {
     try {
       if (getApps().length === 0) {
         app = initializeApp(firebaseConfig);
@@ -44,7 +40,10 @@ if (typeof window !== "undefined") {
       }
       auth = getAuth(app);
     } catch (error) {
-      console.error("Firebase initialization error:", error);
+      // Log only in production
+      if (process.env.NODE_ENV === "production") {
+        console.error("Firebase initialization error:", error instanceof Error ? error.message : "Unknown error");
+      }
     }
   }
 }

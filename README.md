@@ -107,8 +107,16 @@ The app follows a **"Calm. Confident. Effortless. Precise."** design philosophy:
 
 ## Documentation
 
-- [Firebase Setup Guide](./FIREBASE_SETUP.md) - Detailed Firebase configuration
-- [Implementation Plan](./IMPLEMENTATION_PLAN.md) - Complete project roadmap
+All documentation is organized in the [`docs/`](./docs/) directory:
+
+- **[Setup Guides](docs/setup/)** - Firebase, database, and configuration setup
+- **[Implementation Guides](docs/implementation/)** - Technical implementation details
+- **[Deployment Guides](docs/deployment/)** - Railway deployment and deployment checklist
+- **[Troubleshooting](docs/troubleshooting/)** - Common issues and solutions
+- **[Verification](docs/verification/)** - Requirements and status verification
+- **[Cleanup](docs/cleanup/)** - Code cleanup documentation
+
+See [docs/README.md](./docs/README.md) for a complete index of all documentation.
 
 ## Development
 

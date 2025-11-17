@@ -26,8 +26,7 @@ export async function syncUserToDatabase(
 
         // If email is taken by a different user, don't update email
         if (emailUser && emailUser.id !== userId) {
-          console.warn(`⚠️ Email ${email} already exists for user ${emailUser.id}, skipping email update for user ${userId}`);
-          // Update only name
+          // Update only name to avoid email conflict
           await prisma.user.update({
             where: { id: userId },
             data: {
@@ -55,12 +54,11 @@ export async function syncUserToDatabase(
         });
 
         if (emailUser) {
-          console.warn(`⚠️ Email ${email} already exists for user ${emailUser.id}, creating user ${userId} without email`);
-          // Create user without email to avoid conflict
+          // Create user with placeholder email to avoid conflict
           await prisma.user.create({
             data: {
               id: userId,
-              email: `temp-${userId}@placeholder.com`, // Temporary email to satisfy unique constraint
+              email: `temp-${userId}@placeholder.com`,
               name: name || null,
             },
           });
@@ -81,12 +79,14 @@ export async function syncUserToDatabase(
     // Handle Prisma unique constraint errors gracefully
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2002") {
-        console.warn(`⚠️ Unique constraint violation in syncUserToDatabase for user ${userId}:`, error.meta);
-        // Don't throw - this is a background sync operation
+        // Unique constraint violation - silently handle
         return;
       }
     }
-    console.error("Error syncing user to database:", error);
+    // Log only in production for debugging
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error syncing user to database:", error instanceof Error ? error.message : "Unknown error");
+    }
     // Don't throw - this is a background sync operation
   }
 }

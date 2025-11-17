@@ -70,7 +70,9 @@ export async function PUT(
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Error updating dictionary word:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error updating dictionary word:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to update dictionary word" },
       { status: 500 }
@@ -110,7 +112,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting dictionary word:", error);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Error deleting dictionary word:", error instanceof Error ? error.message : "Unknown error");
+    }
     return NextResponse.json(
       { error: "Failed to delete dictionary word" },
       { status: 500 }
