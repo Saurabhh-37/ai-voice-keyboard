@@ -78,16 +78,17 @@ export default function HomePage() {
     const mergedBlob = new Blob(accumulatedChunks, { type: "audio/webm" });
 
     // Send accumulated audio to transcription API (partial, not final)
+    // The API returns the merged text (all chunks so far), so we replace liveText
     async function transcribeChunk() {
       try {
         setTranscriptionError(null);
         const result = await api.transcribeAudio(mergedBlob, false);
         
-        // Append the new text to live transcript
-        setLiveText((prev) => {
-          const newText = prev ? `${prev} ${result.text}` : result.text;
-          return newText.trim();
-        });
+        // API returns mergedText (full transcript so far), so replace (don't append)
+        // This prevents duplication since we're sending accumulated audio chunks
+        if (result.text) {
+          setLiveText(result.text.trim());
+        }
       } catch (err) {
         setTranscriptionError(
           err instanceof Error ? err.message : "Failed to transcribe audio"
@@ -129,12 +130,9 @@ export default function HomePage() {
           const finalBlob = new Blob(audioChunks, { type: "audio/webm" });
           const result = await api.transcribeAudio(finalBlob, true);
           
-          // Update live text with final result
+          // Replace live text with final result (don't append - final result is complete)
           if (result.isFinal && result.text) {
-            setLiveText((prev) => {
-              const merged = prev ? `${prev} ${result.text}` : result.text;
-              return merged.trim();
-            });
+            setLiveText(result.text.trim());
           }
           
           // Refresh recent transcripts to show the new one

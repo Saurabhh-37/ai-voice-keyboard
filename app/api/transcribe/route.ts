@@ -286,8 +286,10 @@ export async function POST(request: NextRequest) {
       // Partial chunk - store for merging with next chunk
       partialTranscripts.set(storageKey, mergedText);
 
+      // Return mergedText (not just correctedText) so client can display the full transcript
+      // This prevents duplication since we're sending accumulated audio chunks
       return NextResponse.json({
-        text: correctedText,
+        text: mergedText,
         isFinal: false,
       });
     }
