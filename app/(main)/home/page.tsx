@@ -37,6 +37,8 @@ export default function HomePage() {
     }
 
     async function fetchRecentTranscripts() {
+      if (!user) return; // Guard clause for TypeScript
+      
       try {
         console.log("🔄 Fetching recent transcripts for user:", user.uid);
         const transcripts = await api.getTranscripts();
