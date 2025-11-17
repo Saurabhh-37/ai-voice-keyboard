@@ -32,7 +32,11 @@ export default function TranscriptPage({
 
   // Fetch transcript
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      setError("Transcript ID is missing");
+      return;
+    }
 
     async function fetchTranscript() {
       try {
