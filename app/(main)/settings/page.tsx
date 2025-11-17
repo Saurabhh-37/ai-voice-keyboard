@@ -12,15 +12,14 @@ export default function SettingsPage() {
   const [email, setEmail] = useState(user?.email || "");
   const [autoPunctuation, setAutoPunctuation] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
+  // Fetch settings on mount
   useEffect(() => {
     async function fetchSettings() {
       try {
-        setLoading(true);
-        const settings = await api.settings.get();
+        const settings = await api.getSettings();
         setAutoPunctuation(settings.autoPunctuation);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching settings:", err);
       } finally {
         setLoading(false);
@@ -28,40 +27,20 @@ export default function SettingsPage() {
     }
 
     if (user) {
-      fetchSettings();
       setName(user.displayName || "");
       setEmail(user.email || "");
+      fetchSettings();
     }
   }, [user]);
 
-  const handleNameChange = async (value: string | boolean) => {
-    const newName = value as string;
-    setName(newName);
-    
-    // Sync with Firebase and database
-    if (user) {
-      try {
-        await api.user.sync(user.email || "", newName);
-      } catch (err) {
-        console.error("Error syncing user:", err);
-      }
-    }
-  };
-
-  const handleAutoPunctuationChange = async (value: string | boolean) => {
-    const newValue = value as boolean;
-    setAutoPunctuation(newValue);
-    
+  // Update auto punctuation setting
+  const handleAutoPunctuationChange = async (value: boolean) => {
     try {
-      setSaving(true);
-      await api.settings.update(newValue);
-    } catch (err: any) {
+      await api.updateSettings(value);
+      setAutoPunctuation(value);
+    } catch (err) {
       console.error("Error updating settings:", err);
-      alert(err.message || "Failed to update settings");
-      // Revert on error
-      setAutoPunctuation(!newValue);
-    } finally {
-      setSaving(false);
+      alert(err instanceof Error ? err.message : "Failed to update settings");
     }
   };
 
@@ -77,8 +56,7 @@ export default function SettingsPage() {
             description="Your display name."
             type="text"
             value={name}
-            onChange={handleNameChange}
-            disabled={loading || saving}
+            onChange={(value) => setName(value as string)}
           />
           <SettingItem
             label="Email"
@@ -96,8 +74,7 @@ export default function SettingsPage() {
             description="Automatically apply punctuation to your transcriptions."
             type="toggle"
             value={autoPunctuation}
-            onChange={handleAutoPunctuationChange}
-            disabled={loading || saving}
+            onChange={(value) => handleAutoPunctuationChange(value as boolean)}
           />
         </SettingsSection>
       </div>

@@ -1,25 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getUserIdFromRequest } from "@/lib/api-helpers";
+import { syncUserToDatabase } from "@/lib/user-sync";
+
+// Helper to get user info from request (ID, email, name)
+async function getUserInfoFromRequest(
+  request: NextRequest
+): Promise<{ userId: string; email: string; name?: string } | null> {
+  try {
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return null;
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+    
+    // Import Firebase Admin dynamically
+    const { getAuth } = await import("firebase-admin/auth");
+    const { getApps } = await import("firebase-admin/app");
+    
+    if (getApps().length === 0) {
+      return null;
+    }
+
+    const adminAuth = getAuth();
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    
+    return {
+      userId: decodedToken.uid,
+      email: decodedToken.email || "",
+      name: decodedToken.name,
+    };
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return null;
+  }
+}
 
 // GET /api/transcripts - Get all transcripts for the authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(request);
+    const userInfo = await getUserInfoFromRequest(request);
     
-    if (!userId) {
+    if (!userInfo) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Ensure user exists in database
-    await prisma.user.upsert({
-      where: { id: userId },
-      create: { id: userId, email: "" }, // Email will be updated from Firebase
-      update: {},
-    });
+    // Sync user to database
+    await syncUserToDatabase(userInfo.userId, userInfo.email, userInfo.name);
 
     const transcripts = await prisma.transcription.findMany({
-      where: { userId },
+      where: { userId: userInfo.userId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -42,9 +72,9 @@ export async function GET(request: NextRequest) {
 // POST /api/transcripts - Create a new transcript
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(request);
+    const userInfo = await getUserInfoFromRequest(request);
     
-    if (!userId) {
+    if (!userInfo) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -58,17 +88,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ensure user exists in database
-    await prisma.user.upsert({
-      where: { id: userId },
-      create: { id: userId, email: "" },
-      update: {},
-    });
+    // Sync user to database
+    await syncUserToDatabase(userInfo.userId, userInfo.email, userInfo.name);
 
     const transcript = await prisma.transcription.create({
       data: {
         text,
-        userId,
+        userId: userInfo.userId,
       },
       select: {
         id: true,

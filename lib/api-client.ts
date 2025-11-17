@@ -1,16 +1,20 @@
+"use client";
+
 import { auth } from "@/lib/firebase";
 
 /**
- * Get the current user's Firebase ID token
+ * Client-side API helper that automatically includes Firebase auth token
  */
-async function getIdToken(): Promise<string | null> {
+async function getAuthToken(): Promise<string | null> {
+  if (!auth?.currentUser) {
+    return null;
+  }
+  
   try {
-    if (!auth?.currentUser) {
-      return null;
-    }
-    return await auth.currentUser.getIdToken();
+    const token = await auth.currentUser.getIdToken();
+    return token;
   } catch (error) {
-    console.error("Error getting ID token:", error);
+    console.error("Error getting auth token:", error);
     return null;
   }
 }
@@ -22,7 +26,7 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = await getIdToken();
+  const token = await getAuthToken();
   
   if (!token) {
     throw new Error("Not authenticated");
@@ -45,52 +49,53 @@ async function apiRequest<T>(
   return response.json();
 }
 
-// API Client functions
+/**
+ * API client methods
+ */
 export const api = {
   // Transcripts
-  transcripts: {
-    getAll: () => apiRequest<Array<{ id: string; text: string; createdAt: string; updatedAt: string }>>("/api/transcripts"),
-    getById: (id: string) => apiRequest<{ id: string; text: string; createdAt: string; updatedAt: string }>(`/api/transcripts/${id}`),
-    create: (text: string) => apiRequest<{ id: string; text: string; createdAt: string; updatedAt: string }>("/api/transcripts", {
+  getTranscripts: () => apiRequest<Array<{ id: string; text: string; createdAt: string; updatedAt: string }>>("/api/transcripts"),
+  
+  getTranscript: (id: string) => apiRequest<{ id: string; text: string; createdAt: string; updatedAt: string }>(`/api/transcripts/${id}`),
+  
+  createTranscript: (text: string) =>
+    apiRequest<{ id: string; text: string; createdAt: string; updatedAt: string }>("/api/transcripts", {
       method: "POST",
       body: JSON.stringify({ text }),
     }),
-    delete: (id: string) => apiRequest<{ success: boolean }>(`/api/transcripts/${id}`, {
+  
+  deleteTranscript: (id: string) =>
+    apiRequest<{ success: boolean }>(`/api/transcripts/${id}`, {
       method: "DELETE",
     }),
-  },
 
   // Dictionary
-  dictionary: {
-    getAll: () => apiRequest<Array<{ id: string; phrase: string; correction: string; createdAt: string; updatedAt: string }>>("/api/dictionary"),
-    create: (phrase: string, correction: string) => apiRequest<{ id: string; phrase: string; correction: string; createdAt: string; updatedAt: string }>("/api/dictionary", {
+  getDictionaryWords: () => apiRequest<Array<{ id: string; phrase: string; correction: string; createdAt: string; updatedAt: string }>>("/api/dictionary"),
+  
+  createDictionaryWord: (phrase: string, correction: string) =>
+    apiRequest<{ id: string; phrase: string; correction: string; createdAt: string; updatedAt: string }>("/api/dictionary", {
       method: "POST",
       body: JSON.stringify({ phrase, correction }),
     }),
-    update: (id: string, phrase: string, correction: string) => apiRequest<{ id: string; phrase: string; correction: string; createdAt: string; updatedAt: string }>(`/api/dictionary/${id}`, {
+  
+  updateDictionaryWord: (id: string, phrase: string, correction: string) =>
+    apiRequest<{ id: string; phrase: string; correction: string; createdAt: string; updatedAt: string }>(`/api/dictionary/${id}`, {
       method: "PUT",
       body: JSON.stringify({ phrase, correction }),
     }),
-    delete: (id: string) => apiRequest<{ success: boolean }>(`/api/dictionary/${id}`, {
+  
+  deleteDictionaryWord: (id: string) =>
+    apiRequest<{ success: boolean }>(`/api/dictionary/${id}`, {
       method: "DELETE",
     }),
-  },
 
   // Settings
-  settings: {
-    get: () => apiRequest<{ id: string; autoPunctuation: boolean; createdAt: string; updatedAt: string }>("/api/settings"),
-    update: (autoPunctuation: boolean) => apiRequest<{ id: string; autoPunctuation: boolean; createdAt: string; updatedAt: string }>("/api/settings", {
+  getSettings: () => apiRequest<{ id: string; userId: string; autoPunctuation: boolean; createdAt: string; updatedAt: string }>("/api/settings"),
+  
+  updateSettings: (autoPunctuation: boolean) =>
+    apiRequest<{ id: string; userId: string; autoPunctuation: boolean; createdAt: string; updatedAt: string }>("/api/settings", {
       method: "PUT",
       body: JSON.stringify({ autoPunctuation }),
     }),
-  },
-
-  // User sync
-  user: {
-    sync: (email: string, name?: string) => apiRequest<{ id: string; email: string; name: string | null; createdAt: string; updatedAt: string }>("/api/user/sync", {
-      method: "POST",
-      body: JSON.stringify({ email, name }),
-    }),
-  },
 };
 

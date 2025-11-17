@@ -19,16 +19,17 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch transcripts on mount
   useEffect(() => {
     async function fetchTranscripts() {
       try {
         setLoading(true);
-        setError(null);
-        const data = await api.transcripts.getAll();
+        const data = await api.getTranscripts();
         setTranscripts(data);
-      } catch (err: any) {
+        setError(null);
+      } catch (err) {
         console.error("Error fetching transcripts:", err);
-        setError(err.message || "Failed to load transcripts");
+        setError(err instanceof Error ? err.message : "Failed to load transcripts");
       } finally {
         setLoading(false);
       }
@@ -37,45 +38,26 @@ export default function LibraryPage() {
     fetchTranscripts();
   }, []);
 
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-      if (diffInHours < 24) {
-        return `Today • ${format(date, "h:mm a")}`;
-      } else if (diffInHours < 48) {
-        return `Yesterday • ${format(date, "h:mm a")}`;
-      } else {
-        return format(date, "MMM d • h:mm a");
-      }
-    } catch {
-      return dateString;
-    }
-  };
-
-  // Transform transcripts for display
-  const displayTranscripts = useMemo(() => {
+  // Format transcripts with readable dates
+  const formattedTranscripts = useMemo(() => {
     return transcripts.map((t) => ({
       id: t.id,
       text: t.text,
-      createdAt: formatDate(t.createdAt),
+      createdAt: format(new Date(t.createdAt), "MMM d • h:mm a"),
     }));
   }, [transcripts]);
 
   // Filter transcripts based on search query
   const filteredTranscripts = useMemo(() => {
     if (!searchQuery.trim()) {
-      return displayTranscripts;
+      return formattedTranscripts;
     }
 
     const query = searchQuery.toLowerCase();
-    return displayTranscripts.filter((transcript) =>
+    return formattedTranscripts.filter((transcript) =>
       transcript.text.toLowerCase().includes(query)
     );
-  }, [displayTranscripts, searchQuery]);
+  }, [formattedTranscripts, searchQuery]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,22 +78,18 @@ export default function LibraryPage() {
           />
         </div>
 
-        {/* Error State */}
-        {error && (
-          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12 text-muted-foreground">
-            Loading transcripts...
-          </div>
-        )}
-
         {/* Transcript List */}
-        {!loading && !error && <TranscriptList transcripts={filteredTranscripts} />}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-muted-foreground">Loading transcripts...</p>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        ) : (
+          <TranscriptList transcripts={filteredTranscripts} />
+        )}
       </div>
     </div>
   );

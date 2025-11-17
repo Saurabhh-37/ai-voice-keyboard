@@ -19,16 +19,21 @@ export default function DictionaryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch dictionary entries on mount
   useEffect(() => {
     async function fetchEntries() {
       try {
         setLoading(true);
+        const data = await api.getDictionaryWords();
+        setEntries(data.map((w) => ({
+          id: w.id,
+          phrase: w.phrase,
+          correction: w.correction,
+        })));
         setError(null);
-        const data = await api.dictionary.getAll();
-        setEntries(data);
-      } catch (err: any) {
-        console.error("Error fetching dictionary entries:", err);
-        setError(err.message || "Failed to load dictionary");
+      } catch (err) {
+        console.error("Error fetching dictionary words:", err);
+        setError(err instanceof Error ? err.message : "Failed to load dictionary");
       } finally {
         setLoading(false);
       }
@@ -39,11 +44,11 @@ export default function DictionaryPage() {
 
   const handleAdd = async (phrase: string, correction: string) => {
     try {
-      const newEntry = await api.dictionary.create(phrase, correction);
+      const newEntry = await api.createDictionaryWord(phrase, correction);
       setEntries([newEntry, ...entries]);
-    } catch (err: any) {
-      console.error("Error adding entry:", err);
-      alert(err.message || "Failed to add dictionary entry");
+    } catch (err) {
+      console.error("Error adding dictionary word:", err);
+      alert(err instanceof Error ? err.message : "Failed to add word");
     }
   };
 
@@ -54,7 +59,7 @@ export default function DictionaryPage() {
 
   const handleSave = async (updatedEntry: DictionaryEntry) => {
     try {
-      const saved = await api.dictionary.update(
+      const saved = await api.updateDictionaryWord(
         updatedEntry.id,
         updatedEntry.phrase,
         updatedEntry.correction
@@ -64,23 +69,23 @@ export default function DictionaryPage() {
       );
       setEditingEntry(null);
       setIsEditDialogOpen(false);
-    } catch (err: any) {
-      console.error("Error updating entry:", err);
-      alert(err.message || "Failed to update dictionary entry");
+    } catch (err) {
+      console.error("Error updating dictionary word:", err);
+      alert(err instanceof Error ? err.message : "Failed to update word");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this dictionary entry?")) {
+    if (!confirm("Are you sure you want to delete this dictionary word?")) {
       return;
     }
 
     try {
-      await api.dictionary.delete(id);
+      await api.deleteDictionaryWord(id);
       setEntries(entries.filter((e) => e.id !== id));
-    } catch (err: any) {
-      console.error("Error deleting entry:", err);
-      alert(err.message || "Failed to delete dictionary entry");
+    } catch (err) {
+      console.error("Error deleting dictionary word:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete word");
     }
   };
 
@@ -95,22 +100,16 @@ export default function DictionaryPage() {
           <AddWordDialog onAdd={handleAdd} />
         </div>
 
-        {/* Error State */}
-        {error && (
-          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12 text-muted-foreground">
-            Loading dictionary...
-          </div>
-        )}
-
         {/* Dictionary Table */}
-        {!loading && !error && (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-muted-foreground">Loading dictionary...</p>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        ) : (
           <DictionaryTable
             entries={entries}
             onEdit={handleEdit}

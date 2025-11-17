@@ -18,21 +18,34 @@ export async function GET(request: NextRequest) {
       update: {},
     });
 
-    // Get or create user settings
-    const settings = await prisma.userSettings.upsert({
+    // Get or create settings
+    let settings = await prisma.userSettings.findUnique({
       where: { userId },
-      create: {
-        userId,
-        autoPunctuation: false,
-      },
-      update: {},
       select: {
         id: true,
+        userId: true,
         autoPunctuation: true,
         createdAt: true,
         updatedAt: true,
       },
     });
+
+    if (!settings) {
+      // Create default settings
+      settings = await prisma.userSettings.create({
+        data: {
+          userId,
+          autoPunctuation: false,
+        },
+        select: {
+          id: true,
+          userId: true,
+          autoPunctuation: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    }
 
     return NextResponse.json(settings);
   } catch (error) {
@@ -56,6 +69,13 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { autoPunctuation } = body;
 
+    if (typeof autoPunctuation !== "boolean") {
+      return NextResponse.json(
+        { error: "autoPunctuation must be a boolean" },
+        { status: 400 }
+      );
+    }
+
     // Ensure user exists
     await prisma.user.upsert({
       where: { id: userId },
@@ -68,13 +88,14 @@ export async function PUT(request: NextRequest) {
       where: { userId },
       create: {
         userId,
-        autoPunctuation: typeof autoPunctuation === "boolean" ? autoPunctuation : false,
+        autoPunctuation,
       },
       update: {
-        autoPunctuation: typeof autoPunctuation === "boolean" ? autoPunctuation : undefined,
+        autoPunctuation,
       },
       select: {
         id: true,
+        userId: true,
         autoPunctuation: true,
         createdAt: true,
         updatedAt: true,

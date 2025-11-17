@@ -17,11 +17,11 @@ if (typeof window === "undefined") {
           firebaseAdmin = initializeApp({
             credential: cert(serviceAccount),
           });
-        } catch (error) {
-          console.error("Error parsing Firebase Admin SDK:", error);
+        } catch (parseError) {
+          console.error("Error parsing Firebase Admin SDK:", parseError);
         }
       } else {
-        console.warn("FIREBASE_ADMIN_SDK not set. Server-side auth verification will not work.");
+        console.warn("FIREBASE_ADMIN_SDK not set. Server-side auth verification disabled.");
       }
     } else {
       firebaseAdmin = getApps()[0];
@@ -31,11 +31,10 @@ if (typeof window === "undefined") {
   }
 }
 
-/**
- * Get user ID from request using Firebase ID token
- * Returns null if token is invalid or missing
- */
-export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
+// Helper to get user ID from request
+export async function getUserIdFromRequest(
+  request: NextRequest
+): Promise<string | null> {
   try {
     // Get the Firebase ID token from Authorization header
     const authHeader = request.headers.get("authorization");
@@ -44,7 +43,7 @@ export async function getUserIdFromRequest(request: NextRequest): Promise<string
     }
 
     const idToken = authHeader.split("Bearer ")[1];
-    
+
     // Verify the token using Firebase Admin
     if (firebaseAdmin) {
       const adminAuth = getAuth(firebaseAdmin);
@@ -53,11 +52,12 @@ export async function getUserIdFromRequest(request: NextRequest): Promise<string
     }
 
     // If Firebase Admin is not set up, return null
-    // In development, you might want to allow this, but in production it should fail
-    console.warn("Firebase Admin not initialized. Cannot verify token.");
+    // In production, you should always have Firebase Admin configured
+    console.warn("Firebase Admin not initialized. Auth verification skipped.");
     return null;
   } catch (error) {
     console.error("Error verifying token:", error);
     return null;
   }
 }
+

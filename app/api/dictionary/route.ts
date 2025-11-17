@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getUserIdFromRequest } from "@/lib/api-helpers";
+import { syncUserToDatabase } from "@/lib/user-sync";
 
 // GET /api/dictionary - Get all dictionary words for the authenticated user
 export async function GET(request: NextRequest) {
@@ -71,22 +72,31 @@ export async function POST(request: NextRequest) {
       where: {
         userId_phrase: {
           userId,
-          phrase: phrase.trim(),
+          phrase,
         },
       },
     });
 
     if (existing) {
-      return NextResponse.json(
-        { error: "This phrase already exists in your dictionary" },
-        { status: 409 }
-      );
+      // Update existing word instead of creating duplicate
+      const updated = await prisma.dictionaryWord.update({
+        where: { id: existing.id },
+        data: { correction },
+        select: {
+          id: true,
+          phrase: true,
+          correction: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      return NextResponse.json(updated, { status: 200 });
     }
 
     const word = await prisma.dictionaryWord.create({
       data: {
-        phrase: phrase.trim(),
-        correction: correction.trim(),
+        phrase,
+        correction,
         userId,
       },
       select: {
@@ -99,17 +109,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(word, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating dictionary word:", error);
-    
-    // Handle unique constraint violation
-    if (error.code === "P2002") {
-      return NextResponse.json(
-        { error: "This phrase already exists in your dictionary" },
-        { status: 409 }
-      );
-    }
-
     return NextResponse.json(
       { error: "Failed to create dictionary word" },
       { status: 500 }

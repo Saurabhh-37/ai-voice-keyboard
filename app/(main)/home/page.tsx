@@ -14,11 +14,11 @@ export default function HomePage() {
   const [liveText, setLiveText] = useState("");
   const [recentTranscripts, setRecentTranscripts] = useState<Array<{ id: string; text: string }>>([]);
 
-  // Fetch recent transcripts on mount
+  // Fetch recent transcripts (last 3)
   useEffect(() => {
     async function fetchRecentTranscripts() {
       try {
-        const transcripts = await api.transcripts.getAll();
+        const transcripts = await api.getTranscripts();
         // Get the 3 most recent
         const recent = transcripts.slice(0, 3).map((t) => ({
           id: t.id,
@@ -46,7 +46,7 @@ export default function HomePage() {
   }, [isRecording]);
 
   // Handle record button click
-  const handleRecordClick = () => {
+  const handleRecordClick = async () => {
     if (isProcessing) return;
 
     if (isRecording) {
@@ -54,12 +54,24 @@ export default function HomePage() {
       setIsRecording(false);
       setIsProcessing(true);
       
-      // Simulate processing
-      setTimeout(() => {
-        setIsProcessing(false);
-        // In real implementation, save transcription here
-        setLiveText("");
-      }, 2000);
+      // Save transcription if there's text
+      if (liveText.trim()) {
+        try {
+          await api.createTranscript(liveText.trim());
+          // Refresh recent transcripts
+          const transcripts = await api.getTranscripts();
+          const recent = transcripts.slice(0, 3).map((t) => ({
+            id: t.id,
+            text: t.text,
+          }));
+          setRecentTranscripts(recent);
+        } catch (err) {
+          console.error("Error saving transcript:", err);
+        }
+      }
+      
+      setIsProcessing(false);
+      setLiveText("");
     } else {
       // Start recording
       setIsRecording(true);

@@ -9,6 +9,7 @@ export async function PUT(
 ) {
   try {
     const userId = await getUserIdFromRequest(request);
+    
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -36,28 +37,28 @@ export async function PUT(
       );
     }
 
-    // Check if the new phrase conflicts with another entry
-    const conflict = await prisma.dictionaryWord.findFirst({
-      where: {
-        userId,
-        phrase: phrase.trim(),
-        NOT: { id },
-      },
-    });
+    // If phrase changed, check for conflicts
+    if (phrase !== existing.phrase) {
+      const conflict = await prisma.dictionaryWord.findUnique({
+        where: {
+          userId_phrase: {
+            userId,
+            phrase,
+          },
+        },
+      });
 
-    if (conflict) {
-      return NextResponse.json(
-        { error: "This phrase already exists in your dictionary" },
-        { status: 409 }
-      );
+      if (conflict && conflict.id !== id) {
+        return NextResponse.json(
+          { error: "A dictionary word with this phrase already exists" },
+          { status: 409 }
+        );
+      }
     }
 
     const updated = await prisma.dictionaryWord.update({
       where: { id },
-      data: {
-        phrase: phrase.trim(),
-        correction: correction.trim(),
-      },
+      data: { phrase, correction },
       select: {
         id: true,
         phrase: true,
@@ -68,23 +69,8 @@ export async function PUT(
     });
 
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating dictionary word:", error);
-    
-    if (error.code === "P2025") {
-      return NextResponse.json(
-        { error: "Dictionary word not found" },
-        { status: 404 }
-      );
-    }
-
-    if (error.code === "P2002") {
-      return NextResponse.json(
-        { error: "This phrase already exists in your dictionary" },
-        { status: 409 }
-      );
-    }
-
     return NextResponse.json(
       { error: "Failed to update dictionary word" },
       { status: 500 }
@@ -99,6 +85,7 @@ export async function DELETE(
 ) {
   try {
     const userId = await getUserIdFromRequest(request);
+    
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -122,16 +109,8 @@ export async function DELETE(
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting dictionary word:", error);
-    
-    if (error.code === "P2025") {
-      return NextResponse.json(
-        { error: "Dictionary word not found" },
-        { status: 404 }
-      );
-    }
-
     return NextResponse.json(
       { error: "Failed to delete dictionary word" },
       { status: 500 }

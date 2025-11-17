@@ -1,69 +1,69 @@
-# Railway Deployment & Database Setup Guide
+# Railway Deployment Setup Guide
 
-This guide will help you set up your AI Voice Keyboard app on Railway with PostgreSQL database integration.
+This guide will help you set up your AI Voice Keyboard application on Railway with PostgreSQL database integration.
 
 ## Prerequisites
 
 - Railway account (sign up at [railway.app](https://railway.app))
-- Firebase project with authentication enabled
 - GitHub repository with your code
+- Firebase project with Admin SDK credentials
 
-## Step 1: Deploy PostgreSQL Database on Railway
+## Step 1: Create PostgreSQL Database on Railway
 
-1. Go to [Railway Dashboard](https://railway.app/dashboard)
+1. Log in to Railway dashboard
 2. Click **"New Project"**
-3. Click **"New"** → **"Database"** → **"Add PostgreSQL"**
-4. Railway will automatically create a PostgreSQL database
-5. Click on the database service
-6. Go to the **"Variables"** tab
-7. Copy the `DATABASE_URL` value (you'll need this later)
+3. Select **"Provision PostgreSQL"**
+4. Railway will create a PostgreSQL database and provide a connection string
+5. Copy the **DATABASE_URL** from the database service (it will look like: `postgresql://user:password@host:port/database`)
 
-## Step 2: Deploy Your Next.js App on Railway
+## Step 2: Deploy Your Next.js Application
 
-1. In your Railway project, click **"New"** → **"GitHub Repo"**
-2. Select your `ai-voice-keyboard` repository
-3. Railway will automatically detect it's a Next.js app
-4. Click on your app service
+1. In your Railway project, click **"New Service"**
+2. Select **"Deploy from GitHub repo"**
+3. Connect your GitHub account and select the `ai-voice-keyboard` repository
+4. Railway will automatically detect it's a Next.js app
 
-## Step 3: Set Up Environment Variables
+## Step 3: Configure Environment Variables
 
-In your Railway app service, go to the **"Variables"** tab and add:
+In your Railway service settings, add the following environment variables:
 
 ### Required Variables
 
-```env
-# Database (from PostgreSQL service)
+```bash
+# Database Connection (from Step 1)
 DATABASE_URL=postgresql://user:password@host:port/database
 
-# Firebase Client Config
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+# Firebase Client Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your-measurement-id
 
 # Firebase Admin SDK (for server-side auth)
-FIREBASE_ADMIN_SDK={"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}
+# This should be a JSON string of your Firebase Admin service account
+FIREBASE_ADMIN_SDK={"type":"service_account","project_id":"...","private_key_id":"...","private_key":"...","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"..."}
+
+# Node Environment
+NODE_ENV=production
 ```
 
 ### Getting Firebase Admin SDK
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select your project
-3. Click the gear icon ⚙️ → **Project settings**
-4. Go to **"Service accounts"** tab
-5. Click **"Generate new private key"**
-6. Download the JSON file
-7. Copy the entire JSON content and paste it as the `FIREBASE_ADMIN_SDK` value in Railway (as a single-line JSON string)
+1. Go to Firebase Console → Project Settings → Service Accounts
+2. Click **"Generate new private key"**
+3. Download the JSON file
+4. Copy the entire JSON content and paste it as the value for `FIREBASE_ADMIN_SDK` in Railway (as a single-line JSON string)
 
-**Important**: The `FIREBASE_ADMIN_SDK` must be a valid JSON string. Railway will handle the escaping.
+**Important:** Make sure to escape quotes properly if pasting directly, or use Railway's environment variable editor which handles this automatically.
 
 ## Step 4: Run Database Migrations
 
-After deploying, you need to run Prisma migrations to create the database tables:
+After deploying, you need to run Prisma migrations to set up your database schema:
 
-### Option 1: Using Railway CLI
+### Option A: Using Railway CLI (Recommended)
 
 1. Install Railway CLI:
    ```bash
@@ -75,7 +75,7 @@ After deploying, you need to run Prisma migrations to create the database tables
    railway login
    ```
 
-3. Link to your project:
+3. Link your project:
    ```bash
    railway link
    ```
@@ -85,96 +85,97 @@ After deploying, you need to run Prisma migrations to create the database tables
    railway run npx prisma migrate deploy
    ```
 
-### Option 2: Using Railway Dashboard
+### Option B: Using Railway Dashboard
 
-1. Go to your app service in Railway
-2. Click **"Deployments"** → **"New Deployment"**
-3. In the build command, add:
-   ```bash
-   npx prisma generate && npx prisma migrate deploy && npm run build
-   ```
+1. Go to your service in Railway dashboard
+2. Click on **"Deployments"** tab
+3. Click **"Deploy"** → **"Custom Command"**
+4. Run: `npx prisma migrate deploy`
+5. Or add it to your `package.json` scripts and Railway will run it automatically
 
-### Option 3: Add to package.json scripts
+### Option C: Add to Build Script
 
 Add this to your `package.json`:
 
 ```json
 {
   "scripts": {
-    "postinstall": "prisma generate",
-    "build": "prisma migrate deploy && next build"
+    "build": "prisma generate && prisma migrate deploy && next build",
+    "postinstall": "prisma generate"
   }
 }
 ```
 
-## Step 5: Verify Deployment
+## Step 5: Generate Prisma Client
 
-1. Check your Railway app URL (Railway provides a default domain)
-2. Visit your app and test:
-   - Sign up / Login
-   - Create a transcript
-   - Add dictionary words
-   - Update settings
+Railway will automatically run `prisma generate` if you have a `postinstall` script, but you can also add it manually:
 
-## Step 6: Custom Domain (Optional)
+```json
+{
+  "scripts": {
+    "postinstall": "prisma generate"
+  }
+}
+```
 
-1. In Railway, go to your app service
-2. Click **"Settings"** → **"Domains"**
-3. Click **"Custom Domain"**
-4. Add your domain and follow the DNS setup instructions
+## Step 6: Verify Deployment
+
+1. Check Railway logs to ensure the app started successfully
+2. Visit your Railway-provided URL (e.g., `https://your-app.railway.app`)
+3. Test authentication (sign up/login)
+4. Test creating a transcript
+5. Test dictionary functionality
 
 ## Troubleshooting
 
 ### Database Connection Issues
 
-- Verify `DATABASE_URL` is correctly set
-- Check that the PostgreSQL service is running
-- Ensure migrations have been run
+- Verify `DATABASE_URL` is correct in Railway environment variables
+- Check that the database service is running in Railway
+- Ensure the connection string includes SSL parameters if required:
+  ```
+  DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
+  ```
 
-### Firebase Auth Issues
+### Firebase Admin SDK Issues
 
-- Verify all `NEXT_PUBLIC_FIREBASE_*` variables are set
-- Check `FIREBASE_ADMIN_SDK` is valid JSON
-- Ensure Email/Password auth is enabled in Firebase Console
+- Ensure `FIREBASE_ADMIN_SDK` is a valid JSON string
+- Check that the service account has the correct permissions
+- Verify the JSON is properly escaped (no line breaks in the environment variable)
 
-### Build Failures
+### Migration Issues
 
-- Check Railway build logs
-- Ensure all environment variables are set
-- Verify Prisma migrations run successfully
+- Run `npx prisma migrate dev` locally first to ensure migrations are created
+- Check Railway logs for migration errors
+- Ensure `DATABASE_URL` is set before running migrations
 
-### API Errors
+### Build Issues
 
-- Check Railway logs for server errors
-- Verify Firebase Admin SDK is properly configured
-- Ensure database tables exist (run migrations)
+- Check that all environment variables are set
+- Verify `NODE_ENV=production` is set
+- Check Railway build logs for specific errors
 
-## Environment Variables Reference
+## Environment Variables Summary
 
 | Variable | Description | Required |
-|-----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | ✅ |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase API key | ✅ |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain | ✅ |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID | ✅ |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket | ✅ |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID | ✅ |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase app ID | ✅ |
-| `FIREBASE_ADMIN_SDK` | Firebase Admin SDK JSON (for server auth) | ✅ |
+|----------|-------------|----------|
+| `DATABASE_URL` | PostgreSQL connection string from Railway | Yes |
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase client configuration | Yes |
+| `FIREBASE_ADMIN_SDK` | Firebase Admin service account JSON | Yes |
+| `NODE_ENV` | Set to `production` | Yes |
 
 ## Next Steps
 
-After deployment:
+After successful deployment:
 
-1. Test all features end-to-end
-2. Set up monitoring (Railway provides logs)
-3. Configure custom domain
-4. Set up CI/CD if needed
-5. Add error tracking (e.g., Sentry)
+1. Set up a custom domain (optional) in Railway settings
+2. Configure CORS if needed for API access
+3. Set up monitoring and alerts
+4. Configure automatic deployments from main branch
 
 ## Support
 
-- [Railway Documentation](https://docs.railway.app)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [Firebase Documentation](https://firebase.google.com/docs)
+- Railway Docs: https://docs.railway.app
+- Prisma Docs: https://www.prisma.io/docs
+- Firebase Docs: https://firebase.google.com/docs
 
