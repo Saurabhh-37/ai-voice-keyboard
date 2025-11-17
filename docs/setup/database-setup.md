@@ -4,10 +4,6 @@
 
 Create a `.env.local` file in the root directory with your DATABASE_URL:
 
-```env
-DATABASE_URL="postgresql://postgres:JnKqqwAfiLQIZmHVGDmSVvkIAqxyDlMY@trolley.proxy.rlwy.net:29213/railway"
-```
-
 **Important**: Make sure `.env.local` is in your `.gitignore` (it should be already).
 
 ## Step 2: Run Database Migration
