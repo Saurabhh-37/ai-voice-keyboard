@@ -243,14 +243,15 @@ export async function POST(request: NextRequest) {
     // Apply dictionary corrections
     const correctedText = applyDictionaryCorrections(rawText, dictionaryWords);
 
-    // Get or create partial transcript storage for this user
+    // IMPORTANT: Since we're receiving accumulated audio (all chunks merged),
+    // the transcription result already contains the complete transcript up to this point.
+    // We should NOT merge with existing partial - that would cause duplication.
+    // The transcription of accumulated audio is already complete.
     const storageKey = userInfo.userId;
-    const existingPartial = partialTranscripts.get(storageKey) || "";
     
-    // Merge with existing partial transcript
-    const mergedText = existingPartial 
-      ? `${existingPartial} ${correctedText}`.trim()
-      : correctedText;
+    // Store the corrected text as the new partial (replacing any old partial)
+    // This is the complete transcript of all accumulated chunks sent so far
+    partialTranscripts.set(storageKey, correctedText);
 
     if (isFinal) {
       // Final chunk - save to database and clear partial storage
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
       try {
         const transcript = await prisma.transcription.create({
           data: {
-            text: mergedText,
+            text: correctedText, // Use correctedText directly (no merging needed)
             userId: userInfo.userId,
           },
           select: {
@@ -278,18 +279,15 @@ export async function POST(request: NextRequest) {
       partialTranscripts.delete(storageKey);
 
       return NextResponse.json({
-        text: mergedText,
+        text: correctedText, // Return correctedText directly (no merging needed)
         isFinal: true,
         transcriptId: transcriptId,
       });
     } else {
-      // Partial chunk - store for merging with next chunk
-      partialTranscripts.set(storageKey, mergedText);
-
-      // Return mergedText (not just correctedText) so client can display the full transcript
-      // This prevents duplication since we're sending accumulated audio chunks
+      // Partial chunk - return the complete transcript so far
+      // Since we're sending accumulated audio, correctedText is already complete
       return NextResponse.json({
-        text: mergedText,
+        text: correctedText, // Return correctedText directly (no merging needed)
         isFinal: false,
       });
     }
