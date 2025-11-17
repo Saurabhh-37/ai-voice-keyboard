@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api-client";
 import { format } from "date-fns";
 import { Loader2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
+// Placeholder transcript data
+const placeholderTranscript = {
+  id: "1",
+  text: "This is a sample transcription that demonstrates how the transcript detail page will display the full text. The text should be properly formatted with line breaks and spacing preserved. Users can copy the text using the copy button.",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 export default function TranscriptPage({
   params,
@@ -21,42 +28,18 @@ export default function TranscriptPage({
     updatedAt: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [id, setId] = useState<string | null>(null);
 
   // Resolve params
   useEffect(() => {
-    params.then((p) => setId(p.id));
-  }, [params]);
-
-  // Fetch transcript
-  useEffect(() => {
-    if (!id) {
+    params.then((p) => {
+      setId(p.id);
+      // Use placeholder data for now
+      setTranscript(placeholderTranscript);
       setLoading(false);
-      setError("Transcript ID is missing");
-      return;
-    }
-
-    // Store id in const to narrow TypeScript type
-    const transcriptId = id;
-
-    async function fetchTranscript() {
-      try {
-        setLoading(true);
-        const data = await api.getTranscript(transcriptId);
-        setTranscript(data);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching transcript:", err);
-        setError(err instanceof Error ? err.message : "Failed to load transcript");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchTranscript();
-  }, [id]);
+    });
+  }, [params]);
 
   const handleCopy = async () => {
     if (!transcript) return;
@@ -69,27 +52,12 @@ export default function TranscriptPage({
     }
   };
 
-  if (loading) {
+  if (loading || !transcript) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="text-sm text-muted-foreground">Loading transcript...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !transcript) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto pt-10 pb-24 px-6">
-          <div className="text-center py-12">
-            <p className="text-destructive mb-4">{error || "Transcript not found"}</p>
-            <Button variant="outline" onClick={() => router.push("/library")}>
-              Back to Library
-            </Button>
-          </div>
         </div>
       </div>
     );

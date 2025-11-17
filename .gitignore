@@ -40,8 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/lib/generated/prisma
-
 # Firebase Admin SDK (contains secrets - never commit!)
 *-firebase-adminsdk-*.json
 firebase-adminsdk-*.json

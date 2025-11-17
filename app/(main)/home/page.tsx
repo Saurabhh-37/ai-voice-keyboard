@@ -5,34 +5,29 @@ import { RecordButton } from "@/components/dictation/RecordButton";
 import { Waveform } from "@/components/dictation/Waveform";
 import { LiveTranscript } from "@/components/dictation/LiveTranscript";
 import { RecentTranscripts } from "@/components/transcripts/RecentTranscripts";
-import { api } from "@/lib/api-client";
+
+// Placeholder transcript data
+const placeholderTranscripts = [
+  {
+    id: "1",
+    text: "This is a sample transcription. It demonstrates how the text will appear in the recent transcripts section. The card should be clickable and show a copy button on hover.",
+  },
+  {
+    id: "2",
+    text: "Another example transcription with slightly different content to show variety in the list.",
+  },
+  {
+    id: "3",
+    text: "A third transcription example to demonstrate the grid layout and spacing.",
+  },
+];
 
 export default function HomePage() {
   // State management
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [liveText, setLiveText] = useState("");
-  const [recentTranscripts, setRecentTranscripts] = useState<Array<{ id: string; text: string }>>([]);
-
-  // Fetch recent transcripts (last 3)
-  useEffect(() => {
-    async function fetchRecentTranscripts() {
-      try {
-        const transcripts = await api.getTranscripts();
-        // Get the 3 most recent
-        const recent = transcripts.slice(0, 3).map((t) => ({
-          id: t.id,
-          text: t.text,
-        }));
-        setRecentTranscripts(recent);
-      } catch (err) {
-        console.error("Error fetching recent transcripts:", err);
-        // Silently fail - don't show error on home page
-      }
-    }
-
-    fetchRecentTranscripts();
-  }, []);
+  const [recentTranscripts, setRecentTranscripts] = useState<Array<{ id: string; text: string }>>(placeholderTranscripts);
 
   // Simulate live transcription updates when recording
   useEffect(() => {
@@ -46,7 +41,7 @@ export default function HomePage() {
   }, [isRecording]);
 
   // Handle record button click
-  const handleRecordClick = async () => {
+  const handleRecordClick = () => {
     if (isProcessing) return;
 
     if (isRecording) {
@@ -54,24 +49,12 @@ export default function HomePage() {
       setIsRecording(false);
       setIsProcessing(true);
       
-      // Save transcription if there's text
-      if (liveText.trim()) {
-        try {
-          await api.createTranscript(liveText.trim());
-          // Refresh recent transcripts
-          const transcripts = await api.getTranscripts();
-          const recent = transcripts.slice(0, 3).map((t) => ({
-            id: t.id,
-            text: t.text,
-          }));
-          setRecentTranscripts(recent);
-        } catch (err) {
-          console.error("Error saving transcript:", err);
-        }
-      }
-      
-      setIsProcessing(false);
-      setLiveText("");
+      // Simulate processing
+      setTimeout(() => {
+        setIsProcessing(false);
+        // In real implementation, save transcription here
+        setLiveText("");
+      }, 2000);
     } else {
       // Start recording
       setIsRecording(true);

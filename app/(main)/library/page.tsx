@@ -1,51 +1,43 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { TranscriptList } from "@/components/transcripts/TranscriptList";
-import { api } from "@/lib/api-client";
-import { format } from "date-fns";
 
-interface Transcript {
-  id: string;
-  text: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Placeholder transcript data
+const placeholderTranscripts = [
+  {
+    id: "1",
+    text: "This is a sample transcription that demonstrates how the library page will display user recordings. The text should be truncated to show a preview, and users can click to view the full transcript.",
+    createdAt: "Today • 3:21 PM",
+  },
+  {
+    id: "2",
+    text: "Another example transcription with different content. This shows how multiple transcripts will appear in the list, sorted by creation date with the most recent at the top.",
+    createdAt: "Today • 2:15 PM",
+  },
+  {
+    id: "3",
+    text: "A third transcription example to demonstrate the grid layout and spacing. Each card should have a clean design with proper hover effects and copy functionality.",
+    createdAt: "Nov 3 • 10:14 AM",
+  },
+  {
+    id: "4",
+    text: "This is a longer transcription example that will test the line-clamp functionality. The text should be properly truncated to show only the first one or two lines, with an ellipsis indicating there's more content. Users can click the card to view the full transcript in detail.",
+    createdAt: "Nov 2 • 4:30 PM",
+  },
+  {
+    id: "5",
+    text: "Final example transcription to show how the list handles multiple items. The design should remain clean and organized even with many transcripts.",
+    createdAt: "Nov 1 • 9:00 AM",
+  },
+];
 
 export default function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [transcripts, setTranscripts] = useState<Transcript[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch transcripts on mount
-  useEffect(() => {
-    async function fetchTranscripts() {
-      try {
-        setLoading(true);
-        const data = await api.getTranscripts();
-        setTranscripts(data);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching transcripts:", err);
-        setError(err instanceof Error ? err.message : "Failed to load transcripts");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchTranscripts();
-  }, []);
 
   // Format transcripts with readable dates
-  const formattedTranscripts = useMemo(() => {
-    return transcripts.map((t) => ({
-      id: t.id,
-      text: t.text,
-      createdAt: format(new Date(t.createdAt), "MMM d • h:mm a"),
-    }));
-  }, [transcripts]);
+  const formattedTranscripts = placeholderTranscripts;
 
   // Filter transcripts based on search query
   const filteredTranscripts = useMemo(() => {
@@ -79,17 +71,7 @@ export default function LibraryPage() {
         </div>
 
         {/* Transcript List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-muted-foreground">Loading transcripts...</p>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        ) : (
-          <TranscriptList transcripts={filteredTranscripts} />
-        )}
+        <TranscriptList transcripts={filteredTranscripts} />
       </div>
     </div>
   );

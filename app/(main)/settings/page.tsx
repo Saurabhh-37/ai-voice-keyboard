@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingItem } from "@/components/settings/SettingItem";
-import { api } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function SettingsPage() {
@@ -11,38 +10,6 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [autoPunctuation, setAutoPunctuation] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch settings on mount
-  useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const settings = await api.getSettings();
-        setAutoPunctuation(settings.autoPunctuation);
-      } catch (err) {
-        console.error("Error fetching settings:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (user) {
-      setName(user.displayName || "");
-      setEmail(user.email || "");
-      fetchSettings();
-    }
-  }, [user]);
-
-  // Update auto punctuation setting
-  const handleAutoPunctuationChange = async (value: boolean) => {
-    try {
-      await api.updateSettings(value);
-      setAutoPunctuation(value);
-    } catch (err) {
-      console.error("Error updating settings:", err);
-      alert(err instanceof Error ? err.message : "Failed to update settings");
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,7 +41,7 @@ export default function SettingsPage() {
             description="Automatically apply punctuation to your transcriptions."
             type="toggle"
             value={autoPunctuation}
-            onChange={(value) => handleAutoPunctuationChange(value as boolean)}
+            onChange={(value) => setAutoPunctuation(value as boolean)}
           />
         </SettingsSection>
       </div>
