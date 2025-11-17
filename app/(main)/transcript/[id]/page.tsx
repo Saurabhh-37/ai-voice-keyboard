@@ -38,10 +38,13 @@ export default function TranscriptPage({
       return;
     }
 
+    // Store id in const to narrow TypeScript type
+    const transcriptId = id;
+
     async function fetchTranscript() {
       try {
         setLoading(true);
-        const data = await api.getTranscript(id);
+        const data = await api.getTranscript(transcriptId);
         setTranscript(data);
         setError(null);
       } catch (err) {
