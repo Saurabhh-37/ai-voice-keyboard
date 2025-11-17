@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model linked to Firebase Auth UID
+model User {
+  id            String    @id // Firebase UID
+  email         String    @unique
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  transcriptions Transcription[]
+  dictionaryWords DictionaryWord[]
+  settings       UserSettings?
+}
+
+// Transcription/Transcript model
+model Transcription {
+  id          String   @id @default(cuid())
+  text        String   @db.Text
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId, createdAt])
+  @@map("transcriptions")
+}
+
+// Dictionary word model
+model DictionaryWord {
+  id          String   @id @default(cuid())
+  phrase      String   // The phrase/word to correct
+  correction  String   // The custom spelling/correction
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, phrase])
+  @@index([userId])
+  @@map("dictionary_words")
+}
+
+// User settings model
+model UserSettings {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  autoPunctuation Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("user_settings")
+}
+
